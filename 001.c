@@ -24,11 +24,11 @@ typedef struct noLetra{
     NoPaises *pNomePaises;
     
     struct noLetra *pProxL;
-    struct noLetra *pAntL;
+    struct noLetra *pAntL, *pAntAuxP;
 }NoLetra;
 
 NoLetra *pInicioL = NULL, *pAuxL, *pAntAux;
-NoPaises *pAuxP;
+NoPaises *pAuxP, *pAntAuxP, *paisEncontrado;
 
 char resp, letraTemp, nomePesq[50], nomePais[50], descricao[200]; int op;
 
@@ -98,8 +98,8 @@ void inserir(){
     pAntAux->pProxL = novaL;
 }
 
-void pesquisar(){
-    letraTemp = toupper(nomePesq[0]);
+NoPaises* pesquisar(char nomeBuscado[]){
+    letraTemp = toupper(nomeBuscado[0]);
     pAuxL = pInicioL;
 
     while(pAuxL != NULL){
@@ -109,97 +109,102 @@ void pesquisar(){
 
             while(pAuxP != NULL){
                 
-                if(stricmp(pAuxP->nome, nomePesq) == 0){
-                    gotoxy(8, 7);
-                    printf("[ PAIS ENCONTRADO ]\n");
-
-                    gotoxy(8, 8);
-                    printf("> Nome: %s\n", pAuxP->nome);
-
-                    gotoxy(8, 9);
-                    printf("> Descricao: %s\n", pAuxP->descricao);
-
-                    gotoxy(8, 11);
-                    system("pause");
-                    return;
+                if(stricmp(pAuxP->nome, nomeBuscado) == 0){
+                    
+                    return pAuxP;
                 }
 
                 pAuxP = pAuxP->pProxP;
             }
-
-            gotoxy(8, 7);
-            printf("[ PAIS NAO ENCONTRADO DENTRO DA LISTA '%C' ]", letraTemp);
-
-            gotoxy(8, 9);
-            system("pause");
-            return;
+            
+            return NULL;
         }
 
         pAuxL = pAuxL->pProxL;
     }
 
-    gotoxy(8, 7);
-    printf("[ NENHUM PAIS COM LETRA '%C' NAO CADASTRADA NO SISTEMA ]", letraTemp);
+    return NULL;
+}
 
-    gotoxy(8, 9);
-    system("pause");
+int remover(){
+
+    letraTemp = toupper(nomePesq[0]);
+    pAuxL = pInicioL;
+
+    while(pAuxL != NULL){
+        if(pAuxL->letra == letraTemp){
+            pAuxP = pAuxL->pNomePaises;
+            pAntAuxP = NULL;
+
+            while(pAuxP != NULL){
+
+                if(stricmp(pAuxP->nome, nomePesq) == 0){
+
+                    if(pAntAuxP == NULL){
+                        // Cenário A: É o primeiro país da lista desta letra
+                        pAuxL->pNomePaises = pAuxP->pProxP;
+                    }else{
+                        // Cenário B: O país está no meio ou no fim da lista
+                        pAntAuxP->pProxP = pAuxP->pProxP;
+                    }
+
+                    free(pAuxP); // Devolve a memória do país para o PC!
+                    pAuxL->quant--;
+
+                    if(pAuxL->quant == 0){
+
+                        if(pAuxL->pAntL == NULL){
+
+                            pInicioL = pAuxL->pProxL;
+                            if(pInicioL != NULL){
+                                pInicioL->pAntL = NULL;
+                            }
+                        }else{
+
+                            pAuxL->pAntL->pProxL = pAuxL->pProxL;
+                            if(pAuxL->pProxL != NULL){
+                                pAuxL->pProxL->pAntL = pAuxL->pAntL;
+                            }
+                        }
+                        
+                        free(pAuxL);
+                    }
+
+                    return 1; //sucesso na remocão;
+                }
+
+                pAntAuxP = pAuxP;
+                pAuxP = pAuxP->pProxP;
+            }
+
+            return 2; //pais não encontrado 
+        }
+
+        pAuxL = pAuxL->pProxL;
+    }
+
+    return 0; //letra não existe
 }
 
 void editar(){
 
-    letraTemp = toupper(nomePesq[0]);
-    pAuxL = pInicioL;
-
-    while(pAuxL != NULL){
+    if (toupper(nomePais[0]) == toupper(paisEncontrado->nome[0])) {
+        // Cenário Simples: A letra é a mesma. Só atualiza o texto!
+        strcpy(paisEncontrado->nome, nomePais); 
+        strcpy(paisEncontrado->descricao, descricao);
         
-        if(pAuxL->letra == letraTemp){
-            pAuxP = pAuxL->pNomePaises;
-
-            while(pAuxP != NULL){
-                
-                if(stricmp(pAuxP->nome, nomePesq) == 0){
-                    gotoxy(8, 7);
-                    printf("[ PAIS ENCONTRADO ]\n");
-
-                    gotoxy(8, 8);
-                    printf("> Nome: %s\n", pAuxP->nome);
-
-                    gotoxy(8, 9);
-                    printf("> Descricao: %s\n", pAuxP->descricao);
-
-                    gotoxy(8, 11);
-                    system("pause");
-                    return;
-                }
-
-                pAuxP = pAuxP->pProxP;
-            }
-
-            gotoxy(8, 7);
-            printf("[ PAIS NAO ENCONTRADO DENTRO DA LISTA '%C' ]", letraTemp);
-
-            gotoxy(8, 9);
-            system("pause");
-            return;
-        }
-
-        pAuxL = pAuxL->pProxL;
+    } else {
+        // Cenário Complexo: A letra inicial mudou! (Ex: Brasil -> Noruega)
+        remover(); // Apaga o antigo (que está na global nomePesq)
+        inserir(); // Cria o novo (que está nas globais nomePais e descricao)
     }
-
-    gotoxy(8, 7);
-    printf("[ NENHUM PAIS COM LETRA '%C' NAO CADASTRADA NO SISTEMA ]", letraTemp);
-
-    gotoxy(8, 9);
-    system("pause");
-
-
-
 
 }
 
-// *****************  TELAS  *****************   
 
-void telaInserir(){
+// ******************* TELAS *******************
+
+int telaInserir(){
 
     system("cls");
 
@@ -222,26 +227,39 @@ void telaInserir(){
     gotoxy(8,6);
     printf("****************************************************************************");
 
-    gotoxy(19,3);
+    gotoxy(18,3);
     scanf(" %[^\n]", nomePais);
     while(getchar() != '\n');
 
     gotoxy(23,4);
     scanf(" %[^\n]", descricao);
     while(getchar() != '\n');
+
+    paisEncontrado = pesquisar(nomePais);
+
+    if(paisEncontrado != NULL){
+
+        gotoxy(8,8);
+        printf("[AVISO] Pais '%s' já cadastrado no sistema [AVISO]", nomePais);
+        gotoxy(8,9);
+        system("pause");
+        return 0;
+    }
+
+    return 1;
 }
 
-void telaPesquisar(){
+int telaPesquisar(){
 
     system("cls");
 
     if(pInicioL == NULL){
         gotoxy(15,18);
-        printf("ATENCAO: nenhum pais foi cadastrado ");
+        printf("[AVISO] nenhum pais foi cadastrado [AVISO]");
         
         gotoxy(8,20);
         system("pause");
-        return;
+        return 0;
     }
 
     gotoxy(8,1);
@@ -263,19 +281,55 @@ void telaPesquisar(){
     scanf(" %[^\n]", nomePesq);
     while(getchar() != '\n');
 
+    paisEncontrado = pesquisar(nomePesq);
+
+    if(paisEncontrado != NULL){
+        
+        gotoxy(8, 7);
+        printf("***************************** PAIS ENCONTRADO *****************************");
+        gotoxy(8,8);
+        printf("*                                                                         *");
+
+        gotoxy(8, 9);
+        printf("* > Nome:                                                                 *");
+        
+        gotoxy(18, 9);
+        printf("%s", paisEncontrado->nome); 
+
+        gotoxy(8, 10);
+        printf("* > Descricao:                                                            *");
+        
+        gotoxy(23, 10);
+        printf("%s", paisEncontrado->descricao); 
+
+        gotoxy(8,11);
+        printf("*                                                                         *");
+
+        gotoxy(8, 12);
+        printf("***************************************************************************");
+
+    }else{
+        gotoxy(8, 7);
+        printf("[AVISO] PAIS '%s' NAO ENCONTRADO NO SISTEMA [AVISO]", nomePesq);
+    }
+
+    gotoxy(8, 14);
+    system("pause");
+
+    return 1;
 }
 
-void telaEditar(){
+int telaEditar(){
 
     system("cls");
 
     if(pInicioL == NULL){
         gotoxy(15,18);
-        printf("ATENCAO: nenhum pais foi cadastrado ");
+        printf("[AVISO]: nenhum pais foi cadastrado[AVISO]");
         
         gotoxy(8,20);
         system("pause");
-        return;
+        return 0;
     }
 
     gotoxy(8,1);
@@ -296,6 +350,162 @@ void telaEditar(){
     gotoxy(24, 3);
     scanf(" %[^\n]", nomePesq);
     while(getchar() != '\n');
+
+    paisEncontrado = pesquisar(nomePesq);
+
+    if(paisEncontrado == NULL){
+        gotoxy(8, 7);
+        printf("[AVISO] PAIS '%s' NAO ENCONTRADO NO SISTEMA [AVISO]", nomePesq);
+        gotoxy(8, 9);
+        system("pause");
+        return 0; // Aborta e volta pro menu
+    }
+
+    // 3. Se achou, mostra como está hoje
+    gotoxy(8, 7);
+    printf("***************************** DADOS ATUAIS ********************************");
+
+    gotoxy(8,8);
+    printf("*                                                                         *");
+
+    gotoxy(8, 9);
+    printf("* > Nome Atual:                                                           *"); 
+
+    gotoxy(24,9);
+    printf("%s", paisEncontrado->nome);
+
+    gotoxy(8, 10);
+    printf("* > Descricao Atual:                                                      *");
+    
+    gotoxy(29,10);
+    printf("%s", paisEncontrado->descricao);
+    
+    gotoxy(8,11);
+    printf("*                                                                         *");
+
+    gotoxy(8, 12);
+    printf("***************************************************************************");
+
+    // 4. Desenha o formulário para os novos dados
+    gotoxy(8, 14);
+    printf("***************************** NOVOS DADOS *********************************");
+    
+    gotoxy(8,15);
+    printf("*                                                                         *");
+
+    gotoxy(8, 16);
+    printf("* > Novo nome:                                                            *");
+
+    gotoxy(8, 17);
+    printf("* > Nova descricao:                                                       *");
+
+    gotoxy(8,18);
+    printf("*                                                                         *");
+
+    gotoxy(8, 19);
+    printf("***************************************************************************");
+    
+    gotoxy(23, 16);
+    scanf(" %[^\n]", nomePais); 
+    while(getchar() != '\n');
+
+    gotoxy(28, 17);
+    scanf(" %[^\n]", descricao); 
+    while(getchar() != '\n');
+
+    return 1;
+}
+
+int telaRemover(){
+
+    system("cls");
+
+    if(pInicioL == NULL){
+        gotoxy(15,18);
+        printf("[AVISO] nenhum pais foi cadastrado [AVISO]");
+        
+        gotoxy(8,20);
+        system("pause");
+        return 0;
+    }
+
+    gotoxy(8,1);
+    printf("********************************* REMOVER *********************************");
+    
+    gotoxy(8,2);
+    printf("*                                                                         *");
+    
+    gotoxy(8,3);
+    printf("* Nome do pais:                                                           *");
+
+    gotoxy(8,4);
+    printf("*                                                                         *");
+
+    gotoxy(8,5);
+    printf("***************************************************************************");
+
+    gotoxy(24, 3);
+    scanf(" %[^\n]", nomePesq);
+    while(getchar() != '\n');
+
+    paisEncontrado = pesquisar(nomePesq);
+
+    if(paisEncontrado != NULL){
+        
+        gotoxy(8, 7);
+        printf("***************************** PAIS ENCONTRADO *****************************");
+
+        gotoxy(8,8);
+        printf("*                                                                         *");
+
+        gotoxy(8, 9);
+        printf("* > Nome:                                                                 *");
+        
+        gotoxy(18, 9);
+        printf("%s", paisEncontrado->nome); 
+
+        gotoxy(8, 10);
+        printf("* > Descricao:                                                            *");
+        
+        gotoxy(23, 10);
+        printf("%s", paisEncontrado->descricao); 
+
+        gotoxy(8,11);
+        printf("*                                                                         *");
+
+        gotoxy(8, 12);
+        printf("***************************************************************************");
+
+        gotoxy(8,14);
+        printf("Remover pais? Sim[S] Nao[outra tecla]");
+
+        gotoxy(8,15);
+        printf("> ");
+
+        gotoxy(10, 15);
+        scanf("%c", &resp);
+        while(getchar() != '\n');
+
+        if(resp == 's' || resp == 'S'){
+
+            return 1;
+        }
+
+        gotoxy(8, 17);
+        printf("[AVISO] REMOCAO CANCELADA PELO USUARIO [AVISO]");
+        gotoxy(8, 18);
+        system("pause");
+        return 0;
+
+    }else{
+        
+        gotoxy(8, 7);
+        printf("[AVISO] PAIS NAO ENCONTRADO NO SISTEMA [AVISO]");
+        gotoxy(8, 9);
+        system("pause");
+        return 0;
+    }
+
 }
 
 void menu(){
@@ -340,25 +550,38 @@ void menu(){
         printf("\n");
         
         switch(op){
-            case 0:
-                break;
+        
             case 1:
                 //exibir();
                 break;
             case 2:
-                telaInserir();
-                inserir();
+                if(telaInserir() == 1){
+                    inserir();
+            
+                    gotoxy(8, 8);
+                    printf("[AVISO] PAIS ADICIONADO COM SUCESSO [AVISO]");
+                    gotoxy(8, 9);
+                    system("pause");
+                }
                 break;
             case 3:
-                telaEditar();
+                if(telaEditar() == 1){
                 editar();
+                }
                 break;
             case 4:
-                //remover();
+                if(telaRemover() == 1){
+                    
+                    remover();
+                    
+                    gotoxy(8, 17);
+                    printf("[AVISO] PAIS REMOVIDO DO SISTEMA [AVISO]");
+                    gotoxy(8, 18);
+                    system("pause");
+                }
                 break;
             case 5:
                 telaPesquisar();
-                pesquisar();
                 break;
                 
             case 7:
