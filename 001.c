@@ -34,6 +34,35 @@ char resp, letraTemp, nomePesq[50], nomePais[50], descricao[200]; int op;
 
 // *****************  FUNÇÕES  *****************
 
+void exibir(){
+    system("cls");
+
+    printf("        ******************************* EXIBIR PAISES ******************************\n");
+
+    if(pInicioL == NULL){
+        printf("        * [AVISO] Nenhum pais cadastrado no sistema [AVISO]\n");
+        system("pause");
+        return;
+    }
+
+    pAuxL = pInicioL;
+
+    while(pAuxL != NULL){
+        printf("\n        * [%c] (%d pais/paises)\n", pAuxL->letra, pAuxL->quant);
+
+        pAuxP = pAuxL->pNomePaises;
+        while(pAuxP != NULL){
+            printf("            -> %s\n", pAuxP->nome);
+            pAuxP = pAuxP->pProxP;
+        }
+
+        pAuxL = pAuxL->pProxL;
+    }
+
+    printf("\n        ****************************************************************************\n\n        ");
+    system("pause");
+}
+
 void inserir(){
 
     letraTemp = toupper(nomePais[0]);
@@ -199,6 +228,54 @@ void editar(){
         inserir(); // Cria o novo (que está nas globais nomePais e descricao)
     }
 
+}
+
+void salvar(){
+
+
+    FILE *a = fopen("dicionario.txt", "w");
+
+    if(a == NULL){
+        printf("[ERRO] Arquivo nao encontrado [ERRO]");
+        return;
+    }else{
+
+        pAuxL = pInicioL;
+        while(pAuxL != NULL){
+
+            pAuxP = pAuxL->pNomePaises;
+            while(pAuxP != NULL){
+                fprintf(a, "%s\n", pAuxP->nome);
+                fprintf(a, "%s\n", pAuxP->descricao);
+
+                pAuxP = pAuxP->pProxP;
+            }
+
+            pAuxL = pAuxL->pProxL;
+        }
+    }
+
+    fclose(a);
+}
+
+void carregar(){
+
+
+    FILE *a = fopen("dicionario.txt", "r");
+
+    if (a == NULL) {
+        
+        return;
+    }
+
+    while(fscanf(a, " %[^\n]", nomePais) != EOF){
+
+        fscanf(a, " %[^\n]", descricao);
+
+        inserir(); 
+    }
+
+    fclose(a);
 }
 
 
@@ -533,18 +610,21 @@ void menu(){
         printf("*  PESQUISAR...........[5]  *");
 
         gotoxy(8,7);
-        printf("*  ENSERIR EM ORDEM....[6]  *");
+        printf("*  PESQ. RELEVANCIA....[6]  *");
 
         gotoxy(8,8);
-        printf("*  Sair................[7]  *");
+        printf("*  ENSERIR EM ORDEM....[7]  *");
 
         gotoxy(8,9);
+        printf("*  Sair................[8]  *");
+
+        gotoxy(8,10);
         printf("*****************************");
 
-        gotoxy(8,11);
+        gotoxy(8,12);
         printf("> Informe a opcao: ");
 
-        gotoxy(27,11);
+        gotoxy(27,12);
         scanf("%d", &op);
         while(getchar() != '\n');
         printf("\n");
@@ -552,7 +632,7 @@ void menu(){
         switch(op){
         
             case 1:
-                //exibir();
+                exibir();
                 break;
             case 2:
                 if(telaInserir() == 1){
@@ -584,10 +664,13 @@ void menu(){
                 telaPesquisar();
                 break;
                 
-            case 7:
-                gotoxy(8, 15);
-                printf("Encerrando programa...");
+            case 8:
+                
+                salvar(); 
 
+                gotoxy(8, 15);
+                printf("Dados salvos com sucesso! Encerrando programa...");
+               
                 gotoxy(8, 16);
                 system("pause");
                 break;
@@ -599,11 +682,12 @@ void menu(){
                 system("pause");
         }
 
-    } while (op != 7);
+    } while (op != 8);
 }
 
 int main(){
 
+    carregar();
     menu();
 
     return 0;
